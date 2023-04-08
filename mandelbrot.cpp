@@ -113,19 +113,24 @@ int main()
 }
 
 
-void DrawMandelbrot(sf::RenderWindow &window) 
+void DrawMandelbrot(sf::Image *image) 
 {
-    sf::RectangleShape Pixel(sf::Vector2f(1, 1));
+    sf::Color color;
 
-    for (float y0 = y_start; y0 <= y_finish; y0 += dy) 
+    int n = 0;
+
+    for (int y0 = 0; y0 < W_HEIGHT; y0++) 
     {
-        float y0_pos = (-y_start - y0) * rescale_factor_y;
+        int y0_pos = y0;
+        float y0_phys = y_start + ((float)y0 / rescale_factor_y);
         
-        for (float x0 = x_start; x0 <= x_finish; x0 += dx)
+        for (int x0 = 0; x0 < W_WIDTH; x0++)
         {
-            float x0_pos = (-x_start + x0) * rescale_factor_x;
+            int x0_pos = x0;
+
+            float x0_phys = x_start + ((float)x0 / rescale_factor_x);
             
-            float x = x0, y = y0;
+            float x = x0_phys, y = y0_phys;
 
             int cur_iter = 0;
 
@@ -136,15 +141,16 @@ void DrawMandelbrot(sf::RenderWindow &window)
 
                 if (distance > MAX_DISTANCE)    break;
 
-                x = x2 - y2 + x0;
-                y = xy + xy + y0;
+                x = x2 - y2 + x0_phys;
+                y = xy + xy + y0_phys;
 
                 cur_iter++;
             }
 
-            Pixel.setPosition(x0_pos, y0_pos);
-            Pixel.setFillColor(sf::Color{(BYTE) cur_iter, 0, (BYTE) 255 - cur_iter});
-            window.draw(Pixel);
+            n = cur_iter;
+            color = sf::Color((BYTE)n * 35, (BYTE) 100 - 2 * n, (BYTE) n * 7);
+            //printf("x y: %d %d\n", x0_pos, y0_pos);
+            image->setPixel(x0_pos, y0_pos, color);
         }
     }
 }
@@ -174,7 +180,7 @@ void DrawMandelbrotIntrs(sf::Image *image)
         
         for (int x0 = 0; x0 < W_WIDTH; x0 += 8)
         {   
-            __m256 x0_arr = _mm256_sub_ps(x_pos_shift_arr, _mm256_set1_ps(-(float)x0 / rescale_factor_x));
+            __m256 x0_arr = _mm256_add_ps(x_pos_shift_arr, _mm256_set1_ps((float)x0 / rescale_factor_x));
             x0_arr = _mm256_add_ps(x0_arr, dx_arr);
 
             __m256i x0_pos_arr = _mm256_add_epi32(dx_w_arr, _mm256_set1_epi32(x0));
