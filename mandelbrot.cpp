@@ -4,6 +4,9 @@
 #include <SFML/Audio.hpp>
 #include <math.h>
 
+#define AVX  0
+#define DRAW 0
+
 const int W_HEIGHT = 1000;
 const int W_WIDTH = 1000;
 const int MAX_ITERATION = 255;
@@ -92,7 +95,11 @@ int main()
             y_finish += 5 * dy;
         }
 
-        DrawMandelbrotIntrs(&image);
+        #if AVX
+            DrawMandelbrotIntrs(&image);
+        #else
+            DrawMandelbrot(&image);
+        #endif
         
         spent_time = clock.getElapsedTime();
         //printf("elapsed time: %d\n", spent_time.asSeconds());
@@ -103,7 +110,9 @@ int main()
         texture.update(image);
 
         fps_text.setString (buf_text);
+        #if DRAW
         window.draw (sprite);
+        #endif
         window.draw(fps_text);
         window.display();
 
@@ -150,7 +159,9 @@ void DrawMandelbrot(sf::Image *image)
             n = cur_iter;
             color = sf::Color((BYTE)n * 35, (BYTE) 100 - 2 * n, (BYTE) n * 7);
             //printf("x y: %d %d\n", x0_pos, y0_pos);
-            image->setPixel(x0_pos, y0_pos, color);
+            #if DRAW
+                image->setPixel(x0_pos, y0_pos, color);
+            #endif
         }
     }
 }
@@ -224,6 +235,8 @@ void DrawMandelbrotIntrs(sf::Image *image)
             //u_int32_t* x0_8_pos = (u_int32_t*) &x0_pos_arr;
             //u_int32_t  y0_pos  = * (u_int32_t*) &y0_pos_arr;
 
+            #if DRAW
+
             int32_t* x0_8_pos = (int32_t*) &x0_pos_arr;
             int32_t  y0_pos  = * (int32_t*) &y0_pos_arr;
 
@@ -246,6 +259,8 @@ void DrawMandelbrotIntrs(sf::Image *image)
                 image->setPixel(x0_8_pos[i], y0_pos, color);
                 //window.draw(Pixel);
             }
+
+            #endif
         }
     }
 }
