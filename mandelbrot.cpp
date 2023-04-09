@@ -4,8 +4,8 @@
 #include <SFML/Audio.hpp>
 #include <math.h>
 
-#define AVX  0
-#define DRAW 0
+#define AVX  1
+#define DRAW 1
 
 const int W_HEIGHT = 1000;
 const int W_WIDTH = 1000;
@@ -13,12 +13,13 @@ const int MAX_ITERATION = 255;
 const float MAX_DISTANCE = 100.0;
 typedef unsigned char BYTE;
 
-const float dx = 0.004;
-const float dy = 0.004;
+float dx = 0.004;
+float dy = 0.004;
 
-const int rescale_factor_x = 250;
-const int rescale_factor_y = 250;
+float rescale_factor_x = 250;
+float rescale_factor_y = 250;
 
+const float ZOOM_FACTOR = 1.2;
 
 const float SPACE_X = 2.0;
 const float SPACE_Y = 2.0;
@@ -35,17 +36,18 @@ int main()
     sf::RenderWindow window(sf::VideoMode(W_HEIGHT, W_WIDTH), "Witcherok");
     window.setFramerateLimit(30);
 
-    //DrawMandelbrotIntrs(window);
-    //window.display();
-
     sf::Clock clock;
+
+    #if DRAW
     sf::Font font;
     font.loadFromFile("caviar-dreams.ttf");
     sf::Text fps_text = *SetText (font, 5, 5);
+    #endif
 
     sf::Time spent_time = clock.getElapsedTime();
-
+    
     sf::Image image;
+    #if DRAW
     image.create(W_WIDTH, W_HEIGHT, sf::Color::Black);
 
     sf::Texture texture;
@@ -55,6 +57,11 @@ int main()
     sprite.setTexture(texture);
 
     char buf_text[20] = {};
+
+    #endif
+
+    int count_measures = 0;
+    float time_sum = 0;
 
     while (window.isOpen())
     {
@@ -95,6 +102,38 @@ int main()
             y_finish += 5 * dy;
         }
 
+        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::F11))     // zoom +
+        {
+            float x_range = (x_finish - x_start) / ZOOM_FACTOR;
+            float x_mid   = (x_finish + x_start) / 2;
+            x_start       = x_mid - x_range / 2;
+            x_finish      = x_mid + x_range / 2;
+            float y_range = (y_finish - y_start) / ZOOM_FACTOR;
+            float y_mid   = (y_finish + y_start) / 2;
+            y_start       = y_mid - y_range / 2;
+            y_finish      = y_mid + y_range / 2;
+
+            dx /= ZOOM_FACTOR;
+            dy /= ZOOM_FACTOR;
+            rescale_factor_x *= ZOOM_FACTOR;
+            rescale_factor_y *= ZOOM_FACTOR;        
+        }
+        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::F11))        // zoom -
+        {
+            float x_range = (x_finish - x_start) * ZOOM_FACTOR;
+            float x_mid   = (x_finish + x_start) / 2;
+            x_start       = x_mid - x_range / 2;
+            x_finish      = x_mid + x_range / 2;
+            float y_range = (y_finish - y_start) * ZOOM_FACTOR;
+            float y_mid   = (y_finish + y_start) / 2;
+            y_start       = y_mid - y_range / 2;
+            y_finish      = y_mid + y_range / 2;
+            dx *= ZOOM_FACTOR;
+            dy *= ZOOM_FACTOR;
+            rescale_factor_x /= ZOOM_FACTOR;
+            rescale_factor_y /= ZOOM_FACTOR;        
+        }
+
         #if AVX
             DrawMandelbrotIntrs(&image);
         #else
@@ -102,7 +141,19 @@ int main()
         #endif
         
         spent_time = clock.getElapsedTime();
-        //printf("elapsed time: %d\n", spent_time.asSeconds());
+
+        if (count_measures < 200)
+        {
+            time_sum += 1/spent_time.asSeconds();
+            count_measures++;
+        }
+        else if (count_measures == 200)
+        {
+            printf("end of measuring\n");
+            count_measures++;
+        }
+
+        #if DRAW
         sprintf (buf_text, "fps: %.2f\n", 1/spent_time.asSeconds());
 
         window.clear(sf::Color::Black);
@@ -110,13 +161,15 @@ int main()
         texture.update(image);
 
         fps_text.setString (buf_text);
-        #if DRAW
+
         window.draw (sprite);
-        #endif
         window.draw(fps_text);
         window.display();
+        #endif
 
     }
+
+    printf("Averaged FPS: %.2f\n", time_sum/200);
 
     return 0;    
 }
@@ -158,7 +211,7 @@ void DrawMandelbrot(sf::Image *image)
 
             n = cur_iter;
             color = sf::Color((BYTE)n * 35, (BYTE) 100 - 2 * n, (BYTE) n * 7);
-            //printf("x y: %d %d\n", x0_pos, y0_pos);
+
             #if DRAW
                 image->setPixel(x0_pos, y0_pos, color);
             #endif
@@ -168,14 +221,11 @@ void DrawMandelbrot(sf::Image *image)
 
 void DrawMandelbrotIntrs(sf::Image *image) 
 {
-    //printf("%d\n\n\n\n\n\n\n\n", image.getSize().y);
     sf::RectangleShape Pixel(sf::Vector2f(1, 1));
 
-    //__m256 dx_arr   = _mm256_set_ps  (7*dx, 6*dx, 5*dx, 4*dx, 3*dx, 2*dx, dx, 0);
-    //__m256i dx_w_arr = _mm256_set_epi32  (7, 6, 5, 4, 3, 2, 1, 0);
     __m256 dx_arr   = _mm256_set_ps  (0, dx, 2*dx, 3*dx, 4*dx, 5*dx, 6*dx, 7*dx);
     __m256i dx_w_arr = _mm256_set_epi32  (0, 1, 2, 3, 4, 5, 6, 7);
-    //__m256 dx_arr   = _mm256_set_ps  (0, dx, 2*dx, 3*dx, 4*dx, 5*dx, 6*dx, 7*dx);
+
     __m256 max_dist = _mm256_set1_ps (MAX_DISTANCE);
 
     __m256 x_pos_shift_arr = _mm256_set1_ps (x_start);
@@ -214,14 +264,7 @@ void DrawMandelbrotIntrs(sf::Image *image)
                 __m256 cmp_mask = _mm256_cmp_ps(dist, max_dist, _CMP_LT_OQ);
 
                 int res = _mm256_movemask_ps(cmp_mask);                         // translate mask to int
-                if (!res)  
-                {
-                    //printf("res break\n");
-                    break;
-                }
-
-                //int* mask_arr = (int*) &cmp_mask;
-                //printf("cmp_mask: %d %d %d %d\n", mask_arr[0], mask_arr[1], mask_arr[2], mask_arr[3]);
+                if (!res) break;
 
                 x_arr = _mm256_add_ps(_mm256_sub_ps(x2, y2), x0_arr);           
                 y_arr = _mm256_add_ps(_mm256_add_ps(xy, xy), y0_arr);
@@ -229,35 +272,20 @@ void DrawMandelbrotIntrs(sf::Image *image)
                 curr_iters_arr = _mm256_sub_epi32 (curr_iters_arr, _mm256_castps_si256 (cmp_mask));       // sub because of (-1)s in mask
             }
 
-            //float* x0_8_pos = (float*) &x0_pos_arr;
-            //float y0_pos = *((float*) &y0_pos_arr);
-
-            //u_int32_t* x0_8_pos = (u_int32_t*) &x0_pos_arr;
-            //u_int32_t  y0_pos  = * (u_int32_t*) &y0_pos_arr;
-
             #if DRAW
 
             int32_t* x0_8_pos = (int32_t*) &x0_pos_arr;
             int32_t  y0_pos  = * (int32_t*) &y0_pos_arr;
 
             int* curr_iters_int = (int*) &curr_iters_arr;
-            //printf("curr_iters_int: %f %f %f %f %f %f %f %f\n", curr_iters_int[0], curr_iters_int[1], curr_iters_int[2], curr_iters_int[3], 
-             //                                                   curr_iters_int[4], curr_iters_int[5], curr_iters_int[6], curr_iters_int[7]);
-
             sf::Color color;
 
             for (int i = 0; i < 8; i++)
             {
-                //Pixel.setPosition(x0_8_pos[i], y0_pos);
                 int n = (int) curr_iters_int[i];
-                //if (n != -1)
-                //    printf("n: %f\n", n);
-                //Pixel.setFillColor(sf::Color((BYTE)n * 35, (BYTE) 100 - 2 * n, (BYTE) n * 7));
-                //Pixel.setFillColor(sf::Color((BYTE)n * 5, (BYTE) n * 30, (BYTE) 255 - n));
 
                 color = sf::Color((BYTE)n * 35, (BYTE) 100 - 2 * n, (BYTE) n * 7);
                 image->setPixel(x0_8_pos[i], y0_pos, color);
-                //window.draw(Pixel);
             }
 
             #endif
