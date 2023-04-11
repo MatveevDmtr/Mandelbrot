@@ -42,7 +42,7 @@ int main()
 
     #if DRAW
     sf::Font font;
-    font.loadFromFile("caviar-dreams.ttf");
+    font.loadFromFile("fonts/caviar-dreams.ttf");
     sf::Text fps_text = *SetText (font, 5, 5);
     #endif
 
