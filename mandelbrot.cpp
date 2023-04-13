@@ -3,8 +3,7 @@
 #include <SFML/Audio.hpp>
 #include <math.h>
 
-#define AVX  1
-#define DRAW 1
+//#define AVX  1
 
 const int W_HEIGHT        = 1000;
 const int W_WIDTH         = 1000;
@@ -40,16 +39,17 @@ int main()
 
     sf::Clock clock;
 
-    #if DRAW
+    #ifdef DRAW
     sf::Font font;
     font.loadFromFile("fonts/caviar-dreams.ttf");
     sf::Text fps_text = *SetText (font, 5, 5);
     #endif
 
-    sf::Time spent_time = clock.getElapsedTime();
+    sf::Time spent_time_avx   = clock.getElapsedTime();
+    sf::Time spent_time_noavx = clock.getElapsedTime();
     
     sf::Image image;
-    #if DRAW
+    #ifdef DRAW
     image.create(W_WIDTH, W_HEIGHT, sf::Color::Black);
 
     sf::Texture texture;
@@ -63,7 +63,8 @@ int main()
     #endif
 
     int count_measures = 0;
-    float time_sum = 0;
+    float time_sum_avx = 0;
+    float time_sum_noavx = 0;
 
     while (window.isOpen())
     {
@@ -115,17 +116,20 @@ int main()
             ChangeZoom();        
         }
 
-        #if AVX
+            clock.restart();
+        //#if AVX
             DrawMandelbrotIntrs(&image);
-        #else
+            spent_time_avx = clock.getElapsedTime();
+        //#else
+            clock.restart();
             DrawMandelbrot(&image);
-        #endif
-        
-        spent_time = clock.getElapsedTime();
+        //#endif
+            spent_time_noavx = clock.getElapsedTime();
 
         if (count_measures < 200)
         {
-            time_sum += 1/spent_time.asSeconds();
+            time_sum_avx += 1/spent_time_avx.asSeconds();
+            time_sum_noavx += 1/spent_time_noavx.asSeconds();
             count_measures++;
         }
         else if (count_measures == 200)
@@ -134,8 +138,8 @@ int main()
             count_measures++;
         }
 
-        #if DRAW
-        sprintf (buf_text, "fps: %.2f\n", 1/spent_time.asSeconds());
+        #ifdef DRAW
+        sprintf (buf_text, "fps: %.2f\n", 1/spent_time_avx.asSeconds());
 
         window.clear(sf::Color::Black);
 
@@ -150,7 +154,8 @@ int main()
 
     }
 
-    printf("Averaged FPS: %.2f\n", time_sum/200);
+    printf("Averaged AVX FPS: %.2f\n", time_sum_avx/200);
+    printf("Averaged No AVX FPS: %.2f\n", time_sum_noavx/200);
 
     return 0;    
 }
@@ -192,7 +197,7 @@ void DrawMandelbrot(sf::Image *image)
             n = cur_iter;
             color = sf::Color((BYTE)n * 35, (BYTE) 100 - 2 * n, (BYTE) n * 7);
 
-            #if DRAW
+            #ifdef DRAW
                 image->setPixel(x0_pos, y0_pos, color);
             #endif
         }
@@ -224,7 +229,7 @@ void DrawMandelbrotIntrs(sf::Image *image)
 
            volatile __m256i curr_iters_arr = CountInterations(x0_arr, y0_arr);      // count colors for 8 points
 
-            #if DRAW
+            #ifdef DRAW
 
             volatile int32_t* x0_8_pos = (int32_t*) &x0_pos_arr;
             volatile int32_t  y0_pos  = * (int32_t*) &y0_pos_arr;
