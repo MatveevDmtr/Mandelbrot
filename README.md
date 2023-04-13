@@ -22,11 +22,11 @@
 
 ## Сборка вручную
 Для компиляции программы необходимо прописать в терминале следующую команду:
-'g++ -mavx2 -c -O3 -DDRAW mandelbrot.cpp -o mandelbrot.o'
+'''g++ -mavx2 -c -O3 -DDRAW mandelbrot.cpp -o mandelbrot.o'''
 Сборка проекта:
-'g++ mandelbrot.o -o sfml-app -lsfml-graphics -lsfml-window -lsfml-system'
+'''g++ mandelbrot.o -o sfml-app -lsfml-graphics -lsfml-window -lsfml-system'''
 Чтобы запустить программу, пропишите в терминале:
-'./sfml-app'
+'''./sfml-app'''
 
 ## Как достичь максимальной скорости вычислений? 
 
