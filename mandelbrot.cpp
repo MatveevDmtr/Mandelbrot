@@ -3,8 +3,6 @@
 #include <SFML/Audio.hpp>
 #include <math.h>
 
-//#define AVX  1
-
 const int W_HEIGHT        = 1000;
 const int W_WIDTH         = 1000;
 const int MAX_ITERATION   = 255;

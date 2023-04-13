@@ -6,7 +6,7 @@ CFLAGS= -mavx2 -c -O3 -DDRAW
 all: mandelbrot execute clean	
 
 mandelbrot: mandelbrot.o
-	$(CC) mandelbrot.o -o sfml-app -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
+	$(CC) mandelbrot.o -o sfml-app -lsfml-graphics -lsfml-window -lsfml-system
 
 mandelbrot.o:
 	$(CC) $(CFLAGS) mandelbrot.cpp -o mandelbrot.o
