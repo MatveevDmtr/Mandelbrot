@@ -3,6 +3,8 @@
 #include <SFML/Audio.hpp>
 #include <math.h>
 
+//#define MEASURING
+
 const int W_HEIGHT        = 1000;
 const int W_WIDTH         = 1000;
 const int MAX_ITERATION   = 255;
@@ -119,6 +121,7 @@ int main()
             DrawMandelbrotIntrs(&image);
             spent_time_avx = clock.getElapsedTime();
         //#else
+        #ifdef MEASURING
             clock.restart();
             DrawMandelbrot(&image);
         //#endif
@@ -135,6 +138,7 @@ int main()
             printf("end of measuring\n");
             count_measures++;
         }
+        #endif
 
         #ifdef DRAW
         sprintf (buf_text, "fps: %.2f\n", 1/spent_time_avx.asSeconds());
@@ -152,8 +156,10 @@ int main()
 
     }
 
+    #ifdef MEASURING
     printf("Averaged AVX FPS: %.2f\n", time_sum_avx/200);
     printf("Averaged No AVX FPS: %.2f\n", time_sum_noavx/200);
+    #endif
 
     return 0;    
 }
