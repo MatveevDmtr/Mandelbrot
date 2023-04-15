@@ -11,6 +11,8 @@ const int MAX_ITERATION   = 255;
 const float MAX_DISTANCE  = 100.0;
 const __m256 MAX_DIST_ARR = _mm256_set1_ps (MAX_DISTANCE);
 
+const int NUM_MEASURES = 200;
+
 typedef unsigned char BYTE;
 
 float dx = 0.004;
@@ -127,13 +129,13 @@ int main()
         //#endif
             spent_time_noavx = clock.getElapsedTime();
 
-        if (count_measures < 200)
+        if (count_measures < NUM_MEASURES)
         {
             time_sum_avx += 1/spent_time_avx.asSeconds();
             time_sum_noavx += 1/spent_time_noavx.asSeconds();
             count_measures++;
         }
-        else if (count_measures == 200)
+        else if (count_measures == NUM_MEASURES)
         {
             printf("end of measuring\n");
             count_measures++;
@@ -157,8 +159,8 @@ int main()
     }
 
     #ifdef MEASURING
-    printf("Averaged AVX FPS: %.2f\n", time_sum_avx/200);
-    printf("Averaged No AVX FPS: %.2f\n", time_sum_noavx/200);
+    printf("Averaged AVX FPS: %.2f\n", time_sum_avx/NUM_MEASURES);
+    printf("Averaged No AVX FPS: %.2f\n", time_sum_noavx/NUM_MEASURES);
     #endif
 
     return 0;    
